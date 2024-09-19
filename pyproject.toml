@@ -13,6 +13,12 @@ markdown = "^3.7"
 django-filter = "^24.3"
 psycopg = {extras = ["binary"], version = "^3.2.2"}
 django-environ = "^0.11.2"
+celery = "^5.4.0"
+django-celery-beat = "^2.7.0"
+kombu = "^5.4.2"
+redis = "^5.0.8"
+django-redis = "^5.4.0"
+flower = "^2.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -21,6 +27,7 @@ pre-commit = "^3.8.0"
 ruff = "^0.6.5"
 pytest = "^8.3.3"
 pytest-django = "^4.9.0"
+watchfiles = "^0.24.0"
 
 
 [tool.commitizen]
