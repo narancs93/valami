@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "valami"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = ["Lajos Seyler <lajos.seyler@gmail.com>"]
 readme = "README.md"

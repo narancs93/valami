@@ -1,3 +1,9 @@
+## 0.3.0 (2024-09-19)
+
+### Feat
+
+- add celery with redis to manage background tasks
+
 ## 0.2.0 (2024-09-19)
 
 ### Feat
