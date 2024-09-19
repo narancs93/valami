@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 COPY ./pyproject.toml ./poetry.lock ./
 
 RUN pip install poetry==1.8.3
-RUN poetry export -f requirements.txt --output ${BUILD_ENVIRONMENT}.txt
+RUN poetry export --with dev -f requirements.txt --output ${BUILD_ENVIRONMENT}.txt
 
 # Create Python Dependency and Sub-Dependency Wheels.
 RUN pip wheel --wheel-dir /usr/src/app/wheels  \
@@ -63,8 +63,14 @@ COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
     && rm -rf /wheels/
 
+COPY ./compose/production/django/entrypoint /entrypoint
+RUN sed -i 's/\r$//g' /entrypoint
+RUN chmod +x /entrypoint
+
 COPY ./compose/local/django/start /start
 RUN sed -i 's/\r$//g' /start
 RUN chmod +x /start
 
 COPY . ${APP_HOME}
+
+ENTRYPOINT ["/entrypoint"]
