@@ -1,0 +1,47 @@
+volumes:
+  my_awesome_project_local_postgres_data: {}
+  my_awesome_project_local_pg_admin_data: {}
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    image: valami_local_django
+    container_name: valami_local_django
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    env_file:
+      - ./.envs/.local/.postgres
+    ports:
+      - '8000:8000'
+    command: /start
+
+  postgres:
+    image: postgres:16
+    container_name: valami_local_postgres
+    volumes:
+      - my_awesome_project_local_postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./.envs/.local/.postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    container_name: pgadmin_valami
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - my_awesome_project_local_pg_admin_data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    restart: unless-stopped
