@@ -1,0 +1,7 @@
+# Celery
+# ------------------------------------------------------------------------------
+CELERY_BROKER_URL='redis://redis:6379/0'
+
+# Flower
+CELERY_FLOWER_USER=kESIVXMghduJkGxiqmEdcrJzlxNciWAC
+CELERY_FLOWER_PASSWORD=MpvhNqusiFyh98Cdn6zzymhZ2oKh18GVc4it2TTfqjqueSAyY8UI0HN0u3ZygI6o

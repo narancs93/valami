@@ -1,9 +1,10 @@
 volumes:
   my_awesome_project_local_postgres_data: {}
   my_awesome_project_local_pg_admin_data: {}
+  my_awesome_project_local_redis_data: {}
 
 services:
-  django:
+  django: &django
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
@@ -15,6 +16,7 @@ services:
     volumes:
       - .:/app
     env_file:
+      - ./.envs/.local/.django
       - ./.envs/.local/.postgres
     ports:
       - '8000:8000'
@@ -45,3 +47,42 @@ services:
     ports:
       - "${PGADMIN_PORT:-5050}:80"
     restart: unless-stopped
+
+  redis:
+    image: docker.io/redis:6
+    container_name: my_awesome_project_local_redis
+
+    volumes:
+      - my_awesome_project_local_redis_data:/data
+
+  celeryworker:
+    <<: *django
+    image: my_awesome_project_local_celeryworker
+    container_name: my_awesome_project_local_celeryworker
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    ports: []
+    command: /start-celeryworker
+
+  celerybeat:
+    <<: *django
+    image: my_awesome_project_local_celerybeat
+    container_name: my_awesome_project_local_celerybeat
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    ports: []
+    command: /start-celerybeat
+
+  flower:
+    <<: *django
+    image: my_awesome_project_local_flower
+    container_name: my_awesome_project_local_flower
+    ports:
+      - '5555:5555'
+    command: /start-flower
