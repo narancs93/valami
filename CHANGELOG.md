@@ -1,3 +1,9 @@
+## 0.4.1 (2024-09-20)
+
+### Fix
+
+- naming in docker-compose files
+
 ## 0.4.0 (2024-09-20)
 
 ### Feat
