@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.contrib.auth.models import BaseUserManager
 from django.db import models, transaction
+from typing import cast
 
 
 def _post_create_user(user):
@@ -26,7 +27,7 @@ class UserManager(BaseUserManager):
         fields = {**extra_fields, "email": email}
         if username is not None:
             fields["username"] = username
-        user = self.model(**fields)
+        user = cast(User, self.model(**fields))
         user.set_password(password)
         user.save(using=self._db)
         _post_create_user(user)
