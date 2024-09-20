@@ -19,6 +19,9 @@ kombu = "^5.4.2"
 redis = "^5.0.8"
 django-redis = "^5.4.0"
 flower = "^2.0.1"
+gunicorn = "^23.0.0"
+uvicorn = "^0.30.6"
+uvicorn-worker = "^0.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -28,6 +31,7 @@ ruff = "^0.6.5"
 pytest = "^8.3.3"
 pytest-django = "^4.9.0"
 watchfiles = "^0.24.0"
+coverage = "^7.6.1"
 
 
 [tool.commitizen]
@@ -43,7 +47,11 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "config.settings"
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+
+[tool.coverage.run]
+source = ["valami"]
+omit = ["*/migrations/*", "*/tests/*"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

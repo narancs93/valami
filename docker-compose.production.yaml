@@ -1,0 +1,74 @@
+volumes:
+  production_postgres_data: {}
+  production_postgres_data_backups: {}
+  production_traefik: {}
+  production_django_media: {}
+  production_redis_data: {}
+
+services:
+  django: &django
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
+    image: my_awesome_project_production_django
+    container_name: valami_production_django
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
+    ports:
+      - '5000:5000'
+    command: /start
+
+  postgres:
+    image: postgres:16
+    container_name: valami_production_postgres
+    volumes:
+      - production_postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./.envs/.production/.postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: docker.io/redis:6
+    container_name: valami_production_redis
+    volumes:
+      - production_redis_data:/data
+
+  celeryworker:
+    <<: *django
+    image: my_awesome_project_production_celeryworker
+    container_name: valami_production_celeryworker
+    command: /start-celeryworker
+    ports: []
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  celerybeat:
+    <<: *django
+    image: my_awesome_project_production_celerybeat
+    container_name: valami_production_celerybeat
+    command: /start-celerybeat
+    ports: []
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  flower:
+    <<: *django
+    image: my_awesome_project_production_flower
+    container_name: valami_production_flower
+    command: /start-flower
+    ports: []
+    depends_on:
+      postgres:
+        condition: service_healthy
