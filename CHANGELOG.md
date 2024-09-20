@@ -1,3 +1,9 @@
+## 0.3.2 (2024-09-20)
+
+### Fix
+
+- permission issue for softprops/action-gh-release@v1 step
+
 ## 0.3.1 (2024-09-20)
 
 ### Fix
