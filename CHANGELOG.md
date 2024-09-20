@@ -1,3 +1,9 @@
+## 0.4.0 (2024-09-20)
+
+### Feat
+
+- add mailpit container for local env to test mails
+
 ## 0.3.2 (2024-09-20)
 
 ### Fix
