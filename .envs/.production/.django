@@ -6,6 +6,10 @@ DJANGO_SECRET_KEY=PFLmKGGAAwvJ3Mszfu3aXaTG2f0pU1LFPA6vHLDfxw3i8FITpSNHNJ9udv6fBj
 DJANGO_ADMIN_URL=QR8uO8LS0CCWRfY8Ox2E5uaj3CRxE2Z5/
 DJANGO_ALLOWED_HOSTS=localhost,localhost:5000
 
+# SimpleJWT
+# ------------------------------------------------------------------------------
+SIGNING_KEY=wGhC5qo1gcheR2kVfPHxBAoc5YPEeudw
+
 # Security
 # ------------------------------------------------------------------------------
 # TIP: better off using DNS, however, redirect is OK too
