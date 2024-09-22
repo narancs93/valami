@@ -1,3 +1,13 @@
+## 0.6.0 (2024-09-22)
+
+### Feat
+
+- configure django-tenants
+
+### Fix
+
+- uncomment local settings for debug toolbar
+
 ## 0.5.0 (2024-09-20)
 
 ### Feat
