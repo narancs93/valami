@@ -5,15 +5,17 @@ ENV ?= local
 .PHONY: help
 help:
 	@echo "Available commands:"
-	@echo "  make up ENV=local|prod                  - Bring up the services with Docker Compose (--build)"
-	@echo "  make down ENV=local|prod                - Bring down the services"
-	@echo "  make createsuperuser ENV=local|prod     - Create a Django superuser"
-	@echo "  make makemigrations ENV=local|prod      - Make Django migrations"
-	@echo "  make migrate ENV=local|prod             - Apply Django migrations"
-	@echo "  make shell ENV=local|prod               - Start Django shell"
-	@echo "  make pytest                                   - Run pytest for unit testing (local)"
-	@echo "  make coverage                                 - Run tests with coverage collection (local)"
-	@echo "  make coverage-report                          - Generate and display coverage report (local)"
+	@echo "  make up ENV=local|prod                            - Bring up the services with Docker Compose (--build)"
+	@echo "  make down ENV=local|prod                          - Bring down the services"
+	@echo "  make createsuperuser ENV=local|prod               - Create a Django superuser"
+	@echo "  make makemigrations ENV=local|prod                - Make Django migrations"
+	@echo "  make migrate ENV=local|prod                       - Apply Django migrations"
+	@echo "  make shell ENV=local|prod                         - Start Django shell"
+	@echo "  make create_tenant ENV=local|prod                 - Create tenant"
+	@echo "  make create_tenant_superuser ENV=local|prod       - Create tenant"
+	@echo "  make pytest                                       - Run pytest for unit testing (local)"
+	@echo "  make coverage                                     - Run tests with coverage collection (local)"
+	@echo "  make coverage-report                              - Generate and display coverage report (local)"
 
 
 # Command to bring up the services with --build option based on the environment
@@ -76,6 +78,28 @@ ifeq ($(ENV),local)
 	@docker compose -f docker-compose.local.yaml run --rm django python manage.py shell
 else ifeq ($(ENV),prod)
 	@docker compose -f docker-compose.production.yaml run --rm django python manage.py shell
+else
+	@echo "Invalid ENV value! Please specify ENV=local or ENV=prod."
+	exit 1
+endif
+
+# Command to run create_tenant with the appropriate docker-compose file
+create_tenant:
+ifeq ($(ENV),local)
+	@docker compose -f docker-compose.local.yaml run --rm django python manage.py create_tenant
+else ifeq ($(ENV),prod)
+	@docker compose -f docker-compose.production.yaml run --rm django python manage.py create_tenant_superuser
+else
+	@echo "Invalid ENV value! Please specify ENV=local or ENV=prod."
+	exit 1
+endif
+
+# Command to run create_tenant_superuser with the appropriate docker-compose file
+create_tenant_superuser:
+ifeq ($(ENV),local)
+	@docker compose -f docker-compose.local.yaml run --rm django python manage.py create_tenant_superuser
+else ifeq ($(ENV),prod)
+	@docker compose -f docker-compose.production.yaml run --rm django python manage.py create_tenant_superuser
 else
 	@echo "Invalid ENV value! Please specify ENV=local or ENV=prod."
 	exit 1
