@@ -57,7 +57,6 @@ services:
   redis:
     image: docker.io/redis:6
     container_name: valami_local_redis
-
     volumes:
       - valami_local_redis_data:/data
 

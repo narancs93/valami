@@ -609,6 +609,19 @@ django = "*"
 typing-extensions = "*"
 
 [[package]]
+name = "django-tenants"
+version = "3.7.0"
+description = "Tenant support for Django using PostgreSQL schemas."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-tenants-3.7.0.tar.gz", hash = "sha256:3836a2bae2c88504889a3226525930dfac8d3621f577cefdfde03db8115e88ac"},
+]
+
+[package.dependencies]
+Django = ">=2.1,<5.2"
+
+[[package]]
 name = "django-timezone-field"
 version = "7.0"
 description = "A Django app providing DB, form, and REST framework fields for zoneinfo and pytz timezone objects."
@@ -1745,4 +1758,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "ec827218fa7f4495a6a13ffc03d97f93ffdf82efcf40ed2e5df757dfb0659996"
+content-hash = "ef502166ce321f33a5f561b03c710ac8516a86d28fe5f9ed2d3024547a5e2e4b"
