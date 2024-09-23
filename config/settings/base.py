@@ -1,6 +1,7 @@
 # ruff: noqa: ERA001, E501
 """Base settings to build other settings files upon."""
 
+import os
 from pathlib import Path
 
 import environ
@@ -247,3 +248,6 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "SIGNING_KEY": env("SIGNING_KEY"),
 }
+
+# Python3-SAML
+SAML_FOLDER = os.path.join(BASE_DIR, "valami", "saml")
