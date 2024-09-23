@@ -1,58 +1,52 @@
+import base64
+import json
+import logging
+
 from django.conf import settings
-from django.http import (
-    HttpResponse,
-    HttpResponseRedirect,
-    HttpResponseServerError,
-    JsonResponse,
-)
-from django.shortcuts import render
-from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
-from onelogin.saml2.auth import OneLogin_Saml2_Auth
-from onelogin.saml2.settings import OneLogin_Saml2_Settings
-from onelogin.saml2.utils import OneLogin_Saml2_Utils
+from django.contrib.auth import get_user_model, logout
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect
+from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from valami.users.serializers import PublicUserSerializer
+
+from .helpers import get_saml_settings, set_idp_metadata
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
-def init_saml_auth(req):
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=settings.SAML_FOLDER)
-    return auth
+class SAMLView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = ()
 
+    def get(self, request, *args, **kwargs):
+        request_data = self.prepare_django_request(request=request)
+        self.auth = self.init_saml_auth(request_data)
 
-def prepare_django_request(request):
-    # If server is behind proxys or balancers use the HTTP_X_FORWARDED fields
-    result = {
-        "https": "on" if request.is_secure() else "off",
-        "http_host": request.META["HTTP_HOST"],
-        "script_name": request.META["PATH_INFO"],
-        "get_data": request.GET.copy(),
-        # Uncomment if using ADFS as IdP, https://github.com/onelogin/python-saml/pull/144
-        # 'lowercase_urlencoding': True,
-        "post_data": request.POST.copy(),
-    }
-    return result
+        if "sso" in request.GET:
+            return self.handle_sso()
+        elif "slo" in request.GET:
+            return self.handle_slo(request)
+        elif "sls" in request.GET:
+            return self.handle_sls(request)
 
+    def post(self, request, *args, **kwargs):
+        request_data = self.prepare_django_request(request=request)
+        self.auth = self.init_saml_auth(request_data)
 
-@csrf_exempt
-def index(request):
-    req = prepare_django_request(request)
-    auth = init_saml_auth(req)
-    errors = []
-    error_reason = None
-    not_auth_warn = False
-    success_slo = False
-    attributes = False
-    paint_logout = False
+        if "acs" in request.GET:
+            return self.handle_acs(request)
 
-    if "sso" in req["get_data"]:
-        return HttpResponseRedirect(auth.login())
-        # If AuthNRequest ID need to be stored in order to later validate it, do instead
-        # sso_built_url = auth.login()
-        # request.session['AuthNRequestID'] = auth.get_last_request_id()
-        # return HttpResponseRedirect(sso_built_url)
-    elif "sso2" in req["get_data"]:
-        return_to = OneLogin_Saml2_Utils.get_self_url(req) + reverse("attrs")
-        return HttpResponseRedirect(auth.login(return_to))
-    elif "slo" in req["get_data"]:
+    def handle_sso(self):
+        return HttpResponseRedirect(self.auth.login())
+
+    def handle_slo(self, request):
         name_id = session_index = name_id_format = name_id_nq = name_id_spnq = None
         if "samlNameId" in request.session:
             name_id = request.session["samlNameId"]
@@ -64,112 +58,139 @@ def index(request):
             name_id_nq = request.session["samlNameIdNameQualifier"]
         if "samlNameIdSPNameQualifier" in request.session:
             name_id_spnq = request.session["samlNameIdSPNameQualifier"]
-
+        logout(request)
         return HttpResponseRedirect(
-            auth.logout(
+            self.auth.logout(
                 name_id=name_id,
                 session_index=session_index,
                 nq=name_id_nq,
                 name_id_format=name_id_format,
                 spnq=name_id_spnq,
-            )
+            ),
         )
-        # If LogoutRequest ID need to be stored in order to later validate it, do instead
-        # slo_built_url = auth.logout(name_id=name_id, session_index=session_index)
-        # request.session['LogoutRequestID'] = auth.get_last_request_id()
-        # return HttpResponseRedirect(slo_built_url)
-    elif "acs" in req["get_data"]:
-        request_id = None
-        if "AuthNRequestID" in request.session:
-            request_id = request.session["AuthNRequestID"]
 
-        auth.process_response(request_id=request_id)
-        errors = auth.get_errors()
-        not_auth_warn = not auth.is_authenticated()
-
-        if not errors:
-            if "AuthNRequestID" in request.session:
-                del request.session["AuthNRequestID"]
-            request.session["samlUserdata"] = auth.get_attributes()
-            request.session["samlNameId"] = auth.get_nameid()
-            request.session["samlNameIdFormat"] = auth.get_nameid_format()
-            request.session["samlNameIdNameQualifier"] = auth.get_nameid_nq()
-            request.session["samlNameIdSPNameQualifier"] = auth.get_nameid_spnq()
-            request.session["samlSessionIndex"] = auth.get_session_index()
-            if (
-                "RelayState" in req["post_data"]
-                and OneLogin_Saml2_Utils.get_self_url(req)
-                != req["post_data"]["RelayState"]
-            ):
-                # To avoid 'Open Redirect' attacks, before execute the redirection confirm
-                # the value of the req['post_data']['RelayState'] is a trusted URL.
-                return HttpResponseRedirect(
-                    auth.redirect_to(req["post_data"]["RelayState"])
-                )
-        elif auth.get_settings().is_debug_active():
-            error_reason = auth.get_last_error_reason()
-    elif "sls" in req["get_data"]:
+    def handle_sls(self, request):
         request_id = None
         if "LogoutRequestID" in request.session:
             request_id = request.session["LogoutRequestID"]
 
-        def dscb():
-            return request.session.flush
+        def delete_session_callback():
+            request.session.flush()
 
-        url = auth.process_slo(request_id=request_id, delete_session_cb=dscb)
-        errors = auth.get_errors()
-        if len(errors) == 0:
-            if url is not None:
-                # To avoid 'Open Redirect' attacks, before execute the redirection confirm
-                # the value of the url is a trusted URL
-                return HttpResponseRedirect(url)
+        url = self.auth.process_slo(
+            request_id=request_id, delete_session_cb=delete_session_callback
+        )
+        return HttpResponseRedirect(url)
+
+    def handle_acs(self, request):
+        self.auth.process_response()
+        errors = self.auth.get_errors()
+
+        if errors:
+            logger.error(f"SAML authentication errors: {errors}")
+            logger.error(self.auth.get_last_error_reason())
+
+        if not self.auth.is_authenticated():
+            return Response(f"SAML authentication failed. Errors: {errors}")
+
+        attributes = self.auth.get_attributes()
+        email = attributes.get("email", [""])[0]
+        username = attributes.get("username", [""])[0]
+
+        response = redirect(settings.SAML_LOGIN_REDIRECT_URL)
+
+        print(email, username, attributes)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            if username and email:
+                user = User.objects.create(
+                    username=username,
+                    email=email,
+                    is_active=True,
+                )
             else:
-                success_slo = True
-        elif auth.get_settings().is_debug_active():
-            error_reason = auth.get_last_error_reason()
+                return response
+        finally:
+            user_serializer = PublicUserSerializer(user)
+            user_base64 = base64.b64encode(
+                json.dumps(user_serializer.data).encode()
+            ).decode()
+            refresh_token = RefreshToken.for_user(user)
 
-    if "samlUserdata" in request.session:
-        paint_logout = True
-        if len(request.session["samlUserdata"]) > 0:
-            attributes = request.session["samlUserdata"]
+            response.set_cookie(
+                "user", user_base64, httponly=False, secure=True, samesite="None"
+            )
+            response.set_cookie(
+                "refresh_token",
+                refresh_token,
+                httponly=True,
+                secure=True,
+                samesite="None",
+            )
 
-    return JsonResponse(
-        {
-            "errors": errors,
-            "error_reason": error_reason,
-            "not_auth_warn": not_auth_warn,
-            "success_slo": success_slo,
-            "attributes": attributes,
-            "paint_logout": paint_logout,
-        },
-    )
+        return response
+
+    @staticmethod
+    def prepare_django_request(request):
+        return {
+            "https": "on" if request.is_secure() else "off",
+            "http_host": request.META["HTTP_HOST"],
+            "script_name": request.META["PATH_INFO"],
+            "get_data": request.GET.copy(),
+            # Uncomment if using ADFS as IdP, https://github.com/onelogin/python-saml/pull/144
+            # 'lowercase_urlencoding': True,
+            "post_data": request.POST.copy(),
+        }
+
+    @staticmethod
+    def init_saml_auth(request_data: dict):
+        saml_settings = get_saml_settings()
+        onelogin_saml_settings = OneLogin_Saml2_Settings(
+            {
+                **saml_settings.settings,
+                **saml_settings.advanced_settings,
+            },
+        )
+        return OneLogin_Saml2_Auth(request_data, onelogin_saml_settings)
 
 
-def attrs(request):
-    paint_logout = False
-    attributes = False
+class Metadata(APIView):
+    permission_classes = [AllowAny]
 
-    if "samlUserdata" in request.session:
-        paint_logout = True
-        if len(request.session["samlUserdata"]) > 0:
-            attributes = request.session["samlUserdata"].items()
-    return render(
-        request, "attrs.html", {"paint_logout": paint_logout, "attributes": attributes}
-    )
+    def get(self, request):
+        saml_settings_obj = get_saml_settings()
+        saml_settings = OneLogin_Saml2_Settings(
+            {
+                **saml_settings_obj.settings,
+                **saml_settings_obj.advanced_settings,
+            },
+            sp_validation_only=True,
+        )
+        metadata = saml_settings.get_sp_metadata()
+        errors = saml_settings.validate_metadata(metadata)
+
+        if errors:
+            print(errors)
+            return HttpResponse(
+                content=", ".join(errors), status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        return HttpResponse(content=metadata, content_type="text/xml")
 
 
-def metadata(request):
-    # req = prepare_django_request(request)
-    # auth = init_saml_auth(req)
-    # saml_settings = auth.get_settings()
-    saml_settings = OneLogin_Saml2_Settings(
-        settings=None, custom_base_path=settings.SAML_FOLDER, sp_validation_only=True
-    )
-    metadata = saml_settings.get_sp_metadata()
-    errors = saml_settings.validate_metadata(metadata)
+class UploadIDPMetadata(APIView):
+    def post(self, request):
+        metadata_file = request.FILES.get("metadata")
 
-    if len(errors) == 0:
-        resp = HttpResponse(content=metadata, content_type="text/xml")
-    else:
-        resp = HttpResponseServerError(content=", ".join(errors))
-    return resp
+        try:
+            metadata = metadata_file.read()
+            set_idp_metadata(metadata)
+            return Response({"message": "Metadata was uploaded successfully."})
+        except Exception:
+            return Response(
+                {
+                    "error": "Something went wrong. Failed to upload IDP metadata.",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

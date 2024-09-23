@@ -70,16 +70,12 @@ SHARED_APPS = (
     "rest_framework",
     # Local apps
     "valami.users",
+    "valami.saml",
 )
 
 TENANT_APPS = (
-    # "django.contrib.auth",
-    # "django.contrib.contenttypes",
-    # "django.contrib.sessions",
-    # "django.contrib.messages",
-    # "django.contrib.staticfiles",
-    # "django.contrib.admin",
     "valami.users",
+    "valami.saml",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = list(SHARED_APPS) + [
@@ -251,3 +247,5 @@ SIMPLE_JWT = {
 
 # Python3-SAML
 SAML_FOLDER = os.path.join(BASE_DIR, "valami", "saml")
+
+SAML_LOGIN_REDIRECT_URL = "/"
