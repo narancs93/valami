@@ -36,7 +36,7 @@ services:
       retries: 5
 
   pgadmin:
-    container_name: pgadmin_valami
+    container_name: valami_local_pgadmin
     image: dpage/pgadmin4
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
@@ -50,7 +50,7 @@ services:
 
   mailpit:
     image: docker.io/axllent/mailpit:latest
-    container_name: my_awesome_project_local_mailpit
+    container_name: valami_local_mailpit
     ports:
       - "8025:8025"
 

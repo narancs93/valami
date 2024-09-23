@@ -116,3 +116,11 @@ coverage:
 # Command to generate and display a test coverage report
 coverage-report:
 	@docker compose -f docker-compose.local.yaml run --rm django coverage report
+
+# Command to bring up keycloak service
+keycloak:
+	@docker compose -f docker-compose.keycloak.yaml -p keycloak up --build -d
+
+# Command to bring down keycloak service
+keycloak_down:
+	@docker compose -f docker-compose.keycloak.yaml -p keycloak down

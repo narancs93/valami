@@ -1,0 +1,10 @@
+POSTGRES_DB=keycloak_db
+POSTGRES_USER=keycloak_db_user
+POSTGRES_PASSWORD=keycloak_db_user_password
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=password
+
+KC_DB: postgres
+KC_DB_URL: jdbc:postgresql://postgres_keycloak/${POSTGRES_DB}
+KC_DB_USERNAME: ${POSTGRES_USER}
+KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
