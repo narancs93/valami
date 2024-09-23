@@ -24,6 +24,7 @@ uvicorn = "^0.30.6"
 uvicorn-worker = "^0.2.0"
 djangorestframework-simplejwt = "^5.3.1"
 django-tenants = "^3.7.0"
+python3-saml = "^1.16.0"
 
 
 [tool.poetry.group.dev.dependencies]
