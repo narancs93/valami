@@ -1,6 +1,7 @@
 # ruff: noqa: ERA001, E501
 """Base settings to build other settings files upon."""
 
+import os
 from pathlib import Path
 
 import environ
@@ -69,16 +70,12 @@ SHARED_APPS = (
     "rest_framework",
     # Local apps
     "valami.users",
+    "valami.saml",
 )
 
 TENANT_APPS = (
-    # "django.contrib.auth",
-    # "django.contrib.contenttypes",
-    # "django.contrib.sessions",
-    # "django.contrib.messages",
-    # "django.contrib.staticfiles",
-    # "django.contrib.admin",
     "valami.users",
+    "valami.saml",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = list(SHARED_APPS) + [
@@ -113,7 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
-    "django_tenants.middleware.main.TenantMainMiddleware",
+    "config.middlewares.TenantJWTAuthMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -243,7 +240,7 @@ REST_FRAMEWORK = {
     )
 }
 
-# https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
-SIMPLE_JWT = {
-    "SIGNING_KEY": env("SIGNING_KEY"),
-}
+# Python3-SAML
+SAML_FOLDER = os.path.join(BASE_DIR, "valami", "saml")
+
+SAML_LOGIN_REDIRECT_URL = "/"

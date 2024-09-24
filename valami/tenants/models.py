@@ -4,6 +4,7 @@ from django_tenants.models import DomainMixin, TenantMixin
 
 class Tenant(TenantMixin):
     name = models.CharField(max_length=100)
+    jwt_signing_key = models.TextField(default="")
 
     auto_create_schema = True
 

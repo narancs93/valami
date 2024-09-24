@@ -24,6 +24,7 @@ from django.views import defaults as default_views
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("valami.users.urls")),
+    path("saml/", include("valami.saml.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
